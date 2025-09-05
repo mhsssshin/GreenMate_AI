@@ -24,12 +24,13 @@ server:
   port: 9000
 
 
-# Gemini API Configuration
-gemini:
-  api-key: ${GEMINI_API_KEY:your-gemini-api-key-here}
-  model: gemini-1.5-flash
+# OpenAI API Configuration
+openai:
+  api-key: ${OPENAI_API_KEY:your-openai-api-key-here}
+  base-url: https://api.openai.com/v1
+  model: gpt-3.5-turbo
+  max-tokens: 2048
   temperature: 0.3
-  max-output-tokens: 2048
 
 # Logging
 logging:

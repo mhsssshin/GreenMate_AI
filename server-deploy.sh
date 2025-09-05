@@ -15,10 +15,10 @@ NGINX_CONF="/etc/nginx/sites-available/greenmate"
 SERVICE_NAME="greenmate-ai"
 CURRENT_DIR=$(pwd)
 
-# Gemini API 키 확인
-if [ -z "$GEMINI_API_KEY" ]; then
-    echo "⚠️  경고: GEMINI_API_KEY 환경변수가 설정되지 않았습니다."
-    echo "   다음 명령으로 설정하세요: export GEMINI_API_KEY='your-api-key'"
+# OpenAI API 키 확인
+if [ -z "$OPENAI_API_KEY" ]; then
+    echo "⚠️  경고: OPENAI_API_KEY 환경변수가 설정되지 않았습니다."
+    echo "   다음 명령으로 설정하세요: export OPENAI_API_KEY='your-api-key'"
 fi
 
 # 1. 서비스 중지 (이미 실행 중인 경우)
@@ -76,7 +76,7 @@ RestartSec=10
 StandardOutput=journal
 StandardError=journal
 
-Environment=GEMINI_API_KEY=\${GEMINI_API_KEY}
+Environment=OPENAI_API_KEY=\${OPENAI_API_KEY}
 
 [Install]
 WantedBy=multi-user.target

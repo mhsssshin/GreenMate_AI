@@ -21,17 +21,20 @@ public class OpenAIService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    @Value("${gemini.api.key}")
+    @Value("${openai.api-key}")
     private String apiKey;
 
-    @Value("${gemini.model}")
+    @Value("${openai.base-url}")
+    private String baseUrl;
+
+    @Value("${openai.model}")
     private String model;
 
-    @Value("${gemini.temperature}")
-    private double temperature;
+    @Value("${openai.max-tokens}")
+    private int maxTokens;
 
-    @Value("${gemini.max-output-tokens}")
-    private int maxOutputTokens;
+    @Value("${openai.temperature}")
+    private double temperature;
 
     public OpenAIService() {
         this.restTemplate = new RestTemplate();
@@ -42,9 +45,9 @@ public class OpenAIService {
     public String generateStepsRecommendation(String gender, Integer age, Integer height, Integer weight) {
         try {
             String prompt = buildStepsPrompt(gender, age, height, weight);
-            return callGeminiAPI(prompt);
+            return callOpenAIAPI(prompt);
         } catch (Exception e) {
-            log.error("Gemini 걸음수 추천 API 호출 중 오류 발생", e);
+            log.error("OpenAI 걸음수 추천 API 호출 중 오류 발생", e);
             throw new RuntimeException("걸음수 추천 생성 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
@@ -53,9 +56,9 @@ public class OpenAIService {
     public String generateGeocodeResult(String keyword, String locationType, String region) {
         try {
             String prompt = buildGeocodePrompt(keyword, locationType, region);
-            return callGeminiAPI(prompt);
+            return callOpenAIAPI(prompt);
         } catch (Exception e) {
-            log.error("Gemini 위치 검색 API 호출 중 오류 발생", e);
+            log.error("OpenAI 위치 검색 API 호출 중 오류 발생", e);
             throw new RuntimeException("위치 검색 생성 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
@@ -65,9 +68,9 @@ public class OpenAIService {
                                                 Integer remainingSteps, UserProfile userProfile) {
         try {
             String prompt = buildRoutePromptNew(latitude, longitude, remainingSteps, userProfile);
-            return callGeminiAPI(prompt);
+            return callOpenAIAPI(prompt);
         } catch (Exception e) {
-            log.error("Gemini 도보 경로 추천 API 호출 중 오류 발생", e);
+            log.error("OpenAI 도보 경로 추천 API 호출 중 오류 발생", e);
             throw new RuntimeException("도보 경로 추천 생성 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
@@ -80,9 +83,9 @@ public class OpenAIService {
         try {
             String prompt = buildPrompt(originLat, originLng, destLat, destLng, 
                                       walkRecommendCount, timeLimitMinutes);
-            return callGeminiAPI(prompt);
+            return callOpenAIAPI(prompt);
         } catch (Exception e) {
-            log.error("Gemini API 호출 중 오류 발생", e);
+            log.error("OpenAI API 호출 중 오류 발생", e);
             throw new RuntimeException("경로 추천 생성 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
@@ -132,48 +135,37 @@ public class OpenAIService {
         return prompt.toString();
     }
 
-    // 공통 Gemini API 호출 메서드
-    private String callGeminiAPI(String prompt) {
+    // 공통 OpenAI API 호출 메서드
+    private String callOpenAIAPI(String prompt) {
         try {
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + apiKey;
-
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(apiKey);
 
             Map<String, Object> requestBody = new HashMap<>();
-            
-            // Contents 구조
-            Map<String, Object> part = new HashMap<>();
-            part.put("text", prompt);
-            
-            Map<String, Object> content = new HashMap<>();
-            content.put("parts", List.of(part));
-            
-            requestBody.put("contents", List.of(content));
-            
-            // Generation Config
-            Map<String, Object> generationConfig = new HashMap<>();
-            generationConfig.put("temperature", temperature);
-            generationConfig.put("maxOutputTokens", maxOutputTokens);
-            
-            requestBody.put("generationConfig", generationConfig);
+            requestBody.put("model", model);
+            requestBody.put("messages", List.of(
+                Map.of("role", "user", "content", prompt)
+            ));
+            requestBody.put("max_tokens", maxTokens);
+            requestBody.put("temperature", temperature);
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
-            log.debug("Gemini API 요청: {}", prompt);
+            log.debug("OpenAI API 요청: {}", prompt);
             
             ResponseEntity<String> response = restTemplate.exchange(
-                url,
+                baseUrl + "/chat/completions",
                 HttpMethod.POST,
                 request,
                 String.class
             );
 
-            return extractContentFromGeminiResponse(response.getBody());
+            return extractContentFromOpenAIResponse(response.getBody());
 
         } catch (Exception e) {
-            log.error("Gemini API 호출 중 오류 발생", e);
-            throw new RuntimeException("Gemini API 호출 실패: " + e.getMessage());
+            log.error("OpenAI API 호출 중 오류 발생", e);
+            throw new RuntimeException("OpenAI API 호출 실패: " + e.getMessage());
         }
     }
 
@@ -272,22 +264,14 @@ public class OpenAIService {
         return prompt.toString();
     }
 
-    private String extractContentFromGeminiResponse(String responseBody) {
+    private String extractContentFromOpenAIResponse(String responseBody) {
         try {
             JsonNode root = objectMapper.readTree(responseBody);
-            JsonNode candidates = root.path("candidates");
-            if (candidates.isArray() && candidates.size() > 0) {
-                JsonNode firstCandidate = candidates.get(0);
-                JsonNode content = firstCandidate.path("content").path("parts");
-                if (content.isArray() && content.size() > 0) {
-                    String text = content.get(0).path("text").asText();
-                    return cleanJsonResponse(text);
-                }
-            }
-            throw new RuntimeException("Gemini 응답에서 콘텐츠를 찾을 수 없습니다");
+            JsonNode content = root.path("choices").get(0).path("message").path("content");
+            return cleanJsonResponse(content.asText());
         } catch (Exception e) {
-            log.error("Gemini 응답 파싱 중 오류 발생: {}", responseBody, e);
-            throw new RuntimeException("Gemini 응답을 파싱할 수 없습니다");
+            log.error("OpenAI 응답 파싱 중 오류 발생: {}", responseBody, e);
+            throw new RuntimeException("OpenAI 응답을 파싱할 수 없습니다");
         }
     }
 
