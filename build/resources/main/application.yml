@@ -1,0 +1,72 @@
+server:
+  port: 8080
+
+---
+# Production Profile
+spring:
+  application:
+    name: route-recommendation
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev  # ✅ 새 키
+server:
+  port: 9000
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod # ✅ 새 키
+server:
+  port: 9000
+
+
+# Gemini API Configuration
+gemini:
+  api-key: ${GEMINI_API_KEY:your-gemini-api-key-here}
+  model: gemini-1.5-flash
+  temperature: 0.3
+  max-output-tokens: 2048
+
+# Logging
+logging:
+  level:
+    com.greenmate: INFO
+    org.springframework.web: WARN
+    root: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%level] %logger{36} - %msg%n"
+
+# API Documentation
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+
+---
+
+spring:
+  application:
+    name: greenmate-route-recommendation
+
+# Logging
+logging:
+  level:
+    com.greenmate: DEBUG
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# API Documentation
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true

@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-RouteRecommendationApplication<GreenMate_AI>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.greenmate.routerecommendation.RouteRecommendationApplication",
+            "projectName": "GreenMate_AI",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
